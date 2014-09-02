@@ -3,7 +3,8 @@ Jason = function(rootObj) {
 	var BIND_PRIFIX = "JasonBind";
 
 	var BIND_TYPE = {
-		TEXT: "text"
+		TEXT: "text",
+		FOREACH: "foreach"
 	};
 
 	var dom = rootObj.document || {};
@@ -51,13 +52,33 @@ Jason = function(rootObj) {
 		}
 	};
 
+	var doForeachBind = function(entity) {
+		var htmlObj = entity.htmlObject;
+		var bindKey = entity.bindKey;
+		var data = entity.model[bindKey];
+		var children = new Array();
+
+		for (var i = 0; i < htmlObj.children.length; i++) {
+			children[i] = htmlObj.children[0].cloneNode(true);
+			htmlObj.removeChild(htmlObj.children[0]);
+		};
+
+		for (var i = 0; i < data.length; i++) {
+			for (var j = 0; j < children.length; j++) {
+				var newChild = children[j].cloneNode(true);
+				htmlObj.appendChild(newChild);
+				ui.modelBind(data[i], newChild);
+			};			
+		};
+	};
+
 	var doCustomListeners = function(entity, event) {
 		for (var i = 0; i < entity.model[entity.bindKey].subscribes.length; i++) {
 			entity.model[entity.bindKey].subscribes[i].call(htmlObj, event);
 		};
 	}
 	
-	var collectBindedHtmlMap = function() {
+	var getBindEntitiesFn = function() {
 
 		var objects = new Array();
 
@@ -71,23 +92,25 @@ Jason = function(rootObj) {
 
 		var collectBind = function(htmlObj) {
 
-			var children = htmlObj.childNodes;
-
-			for (var i = 0; i < children.length; i++) {
-				collectBind(children[i]);
-			};
-
 			var bindValue = htmlObj.getAttribute && htmlObj.getAttribute(BIND_PRIFIX);
 			if (bindValue) {
 				objects[objects.length] = new Entity(bindValue, htmlObj);
-			};
+			} else {
+
+				var children = htmlObj.childNodes;
+
+				for (var i = 0; i < children.length; i++) {
+					collectBind(children[i]);
+				};
+			}
+
 			return objects;
 		};
 
 		return collectBind;
-	}();
+	};
 
-	var bindedHtmlMaps = collectBindedHtmlMap(dom);
+	var bindedHtmlMaps;
 
 	var rebind = function() {
 		for (var i = 0; i < bindedHtmlMaps.length; i++) {
@@ -138,15 +161,16 @@ Jason = function(rootObj) {
 		},
 
 		modelBind: function(model, htmlObj) {
+			if (!htmlObj) {
+				htmlObj = dom;
+			}
+			var collectRootBindEntities = getBindEntitiesFn();
+			bindedHtmlMaps = collectRootBindEntities(htmlObj);
 			if (!model) {
 				if(console.log) {
 					console.log("Illegal model as the first argument. (Jason.bind(model, [htmlObj]))");
 				}
 				return false;
-			}
-
-			if (!htmlObj) {
-				htmlObj = dom;
 			}
 
 			for (var i = 0; i < bindedHtmlMaps.length; i++) {
@@ -156,8 +180,13 @@ Jason = function(rootObj) {
 			}
 
 			var bindProperty = function(entity, value, changeHandle) {
-				if (entity.bindType === BIND_TYPE.TEXT) {
-					setFieldValue(entity, value, changeHandle);
+				switch(entity.bindType) {
+					case BIND_TYPE.TEXT: 
+						setFieldValue(entity, value, changeHandle);
+						break;
+					case BIND_TYPE.FOREACH:
+						doForeachBind(entity);
+						break;
 				}
 			}	
 

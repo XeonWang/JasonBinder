@@ -2,16 +2,20 @@
 <html>
 <head>
 	<title>Title of the document</title>
+	<script type='text/javascript' src='JasonBinder.js'></script>
 </head>
 
 <body>
-The content of the document......<br/>
 
 The kockoutjs test name is : <input JasonBind="text: name"></input>
 </br>
 The kockoutjs test name is : <input JasonBind="text: fullInfo"></input>
+</br>
 
-<script type='text/javascript' src='JasonBinder.js'></script>
+<ui JasonBind="foreach: friends">
+	<li JasonBind="text: name">Hello1</li>
+</ui>
+
 <script type="text/javascript" src="mainTest.js"></script>
 </body>
 </html>
